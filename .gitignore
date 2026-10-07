@@ -1,0 +1,14 @@
+.tools/
+capture/frames/
+capture/sheet_*.jpg
+trailer/snapshots/
+trailer/.hyperframes/
+node_modules/
+capture/clips/
+trailer/assets/video/
+trailer/renders/sandlot-trailer.mp4
+capture/probe*.mjs
+capture/uiprobe.mjs
+capture/gputest.mjs
+capture/speedtest.mjs
+capture/stills.mjs

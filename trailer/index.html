@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      @font-face {
+        font-family: "Lilita One";
+        src: url("assets/fonts/lilita-one-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+      }
+      @font-face {
+        font-family: "Barlow Condensed";
+        src: url("assets/fonts/barlow-condensed-latin-600-normal.woff2") format("woff2");
+        font-weight: 600;
+      }
+      @font-face {
+        font-family: "Barlow Condensed";
+        src: url("assets/fonts/barlow-condensed-latin-700-normal.woff2") format("woff2");
+        font-weight: 700;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #000;
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #000;
+        --gold: #ffb21e;
+        --gold-hi: #ffd460;
+        --ink: #3a1a00;
+        --chalk: #fdf8ec;
+      }
+      video {
+        object-fit: cover;
+      }
+      /* the look over the footage: a soft vignette, then the 2.39:1 letterbox */
+      .vignette {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 40;
+        background: radial-gradient(ellipse 75% 70% at 50% 50%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.55) 100%);
+      }
+      .bar {
+        position: absolute;
+        left: 0;
+        width: 100%;
+        height: 138px;
+        background: #000;
+        z-index: 90;
+      }
+      .bar.top {
+        top: 0;
+      }
+      .bar.bottom {
+        bottom: 0;
+      }
+      .flash {
+        position: absolute;
+        inset: 0;
+        background: #fff;
+        z-index: 80;
+        opacity: 0;
+      }
+      .black {
+        position: absolute;
+        inset: 0;
+        background: #000;
+        z-index: 85;
+      }
+      /* titles */
+      .title {
+        position: absolute;
+        inset: 0;
+        z-index: 60;
+        display: flex;
+        flex-direction: column;
+        pointer-events: none;
+      }
+      .center {
+        align-items: center;
+        justify-content: center;
+      }
+      .lower {
+        justify-content: flex-end;
+        align-items: flex-start;
+        padding: 0 0 190px 150px;
+      }
+      .big {
+        font-family: "Lilita One", sans-serif;
+        font-size: 128px;
+        line-height: 1;
+        letter-spacing: 1px;
+        color: var(--chalk);
+        text-shadow:
+          0 5px 0 var(--ink),
+          3px 3px 0 var(--ink),
+          -3px 3px 0 var(--ink),
+          3px -2px 0 var(--ink),
+          -3px -2px 0 var(--ink),
+          0 12px 30px rgba(0, 0, 0, 0.55);
+      }
+      .big em {
+        font-style: normal;
+        color: var(--gold);
+      }
+      .rule {
+        display: block;
+        width: 220px;
+        height: 8px;
+        margin: 0 0 22px 4px;
+        background: var(--gold);
+        transform-origin: left center;
+      }
+      .small {
+        font-family: "Barlow Condensed", sans-serif;
+        font-weight: 700;
+        font-size: 40px;
+        letter-spacing: 9px;
+        color: var(--chalk);
+        text-transform: uppercase;
+        text-shadow: 0 3px 14px rgba(0, 0, 0, 0.8);
+      }
+      .logo {
+        width: 1080px;
+        height: auto;
+        display: block;
+        filter: drop-shadow(0 18px 40px rgba(0, 0, 0, 0.6));
+      }
+      .logo.end {
+        width: 940px;
+      }
+      .kicker {
+        margin-top: 26px;
+      }
+      .k {
+        width: 520px;
+        height: auto;
+        display: block;
+        filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.7));
+      }
+      .stats {
+        font-family: "Lilita One", sans-serif;
+        font-size: 104px;
+        color: var(--chalk);
+        text-shadow:
+          0 5px 0 var(--ink),
+          3px 3px 0 var(--ink),
+          -3px 3px 0 var(--ink),
+          0 12px 30px rgba(0, 0, 0, 0.55);
+      }
+      .stats em {
+        font-style: normal;
+        color: var(--gold);
+      }
+      .modes {
+        margin-top: 22px;
+      }
+      .url {
+        margin-top: 34px;
+        font-family: "Barlow Condensed", sans-serif;
+        font-weight: 600;
+        font-size: 44px;
+        letter-spacing: 3px;
+        color: var(--gold-hi);
+        text-shadow: 0 3px 14px rgba(0, 0, 0, 0.9);
+      }
+      .cta {
+        margin-top: 30px;
+      }
+      #grain-overlay .grain-texture {
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+        opacity: 0.06;
+        animation: hf-grain-noise 0.5s steps(1) infinite;
+      }
+      @keyframes hf-grain-noise {
+        0%,
+        100% {
+          transform: translate(0, 0);
+        }
+        20% {
+          transform: translate(-10%, 5%);
+        }
+        40% {
+          transform: translate(-5%, 15%);
+        }
+        60% {
+          transform: translate(15%, 0);
+        }
+        80% {
+          transform: translate(-15%, 0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="30" data-width="1920" data-height="1080" data-fps="30">
+      <!-- ============ picture: eight shots from the real game ============ -->
+      <video id="v-establish" src="assets/video/establish.mp4" muted playsinline data-start="0" data-duration="4.2" data-media-start="0.6" data-track-index="0"></video>
+      <video id="v-pitcher" src="assets/video/pitcher.mp4" muted playsinline data-start="4.2" data-duration="2" data-media-start="0.15" data-track-index="0"></video>
+      <video id="v-contact" src="assets/video/contact.mp4" muted playsinline data-start="6.2" data-duration="2.7" data-media-start="0" data-track-index="0"></video>
+      <video id="v-flight" src="assets/video/flight.mp4" muted playsinline data-start="8.9" data-duration="3.2" data-media-start="0.15" data-track-index="0"></video>
+      <video id="v-landing" src="assets/video/landing.mp4" muted playsinline data-start="12.1" data-duration="2.9" data-media-start="0.3" data-track-index="0"></video>
+      <video id="v-strikeout" src="assets/video/strikeout.mp4" muted playsinline data-start="15" data-duration="3.2" data-media-start="0" data-track-index="0"></video>
+      <video id="v-dp" src="assets/video/dp.mp4" muted playsinline data-start="18.2" data-duration="3.8" data-media-start="0.1" data-track-index="0"></video>
+      <video id="v-finale" src="assets/video/finale.mp4" muted playsinline data-start="22" data-duration="8" data-media-start="0" data-playback-rate="0.68" data-track-index="0"></video>
+
+      <div id="vignette" class="vignette"></div>
+
+      <!-- ============ titles ============ -->
+      <div id="t-open" class="title center clip" data-start="0.8" data-duration="3.3" data-track-index="2">
+        <img id="t-open-logo" class="logo" src="assets/logo.svg" alt="Sandlot" />
+        <div id="t-open-kicker" class="small kicker">Baseball, built for your browser</div>
+      </div>
+      <div id="t-hit" class="title lower clip" data-start="9.3" data-duration="2.7" data-track-index="2">
+        <span id="t-hit-rule" class="rule"></span>
+        <div id="t-hit-text" class="big">Hit it <em>a mile.</em></div>
+      </div>
+      <div id="t-mound" class="title lower clip" data-start="15.15" data-duration="1.75" data-track-index="2">
+        <span id="t-mound-rule" class="rule"></span>
+        <div id="t-mound-text" class="big">Then take <em>the mound.</em></div>
+      </div>
+      <div id="t-k" class="title center clip" data-start="16.98" data-duration="1.2" data-track-index="2">
+        <img id="t-k-img" class="k" src="assets/k.svg" alt="K" />
+      </div>
+      <div id="t-throw" class="title lower clip" data-start="18.45" data-duration="3.4" data-track-index="2">
+        <span id="t-throw-rule" class="rule"></span>
+        <div id="t-throw-text" class="big">Make <em>every throw.</em></div>
+      </div>
+      <div id="t-stats" class="title center clip" data-start="22.4" data-duration="2.95" data-track-index="2">
+        <div id="t-stats-text" class="stats">30 clubs. <em>31 ballparks.</em></div>
+        <div id="t-stats-modes" class="small modes">League &middot; Quick Game &middot; Home Run Derby &middot; Practice</div>
+      </div>
+      <div id="t-end" class="title center clip" data-start="25.6" data-duration="4.4" data-track-index="2">
+        <img id="t-end-logo" class="logo end" src="assets/logo.svg" alt="Sandlot" />
+        <div id="t-end-cta" class="small cta">Play free in your browser</div>
+        <div id="t-end-url" class="url">baseball-jtc11.vercel.app</div>
+      </div>
+
+      <div id="flash" class="flash"></div>
+      <div id="black" class="black"></div>
+      <div id="grain-overlay" style="position: absolute; inset: 0; pointer-events: none; z-index: 70; overflow: hidden"><div class="grain-texture"></div></div>
+      <div id="bar-top" class="bar top"></div>
+      <div id="bar-bottom" class="bar bottom"></div>
+
+      <!-- ============ sound: a score, the crack of the bat, the crowd (all made in code) + bundled cinematic hits ============ -->
+      <audio id="a-score" src="assets/audio/score.wav" data-start="0" data-duration="30" data-track-index="10" data-volume="0.9"></audio>
+      <audio id="a-crowd-bed" src="assets/audio/crowd-bed.wav" data-start="0" data-duration="30" data-track-index="11" data-volume="0.16"></audio>
+      <audio id="a-whoosh" src=".media/audio/sfx/sfx_001.mp3" data-start="0" data-duration="5.5" data-track-index="12" data-volume="0.55"></audio>
+      <audio id="a-riser" src=".media/audio/sfx/sfx_002.mp3" data-start="2" data-duration="5.43" data-media-start="4.6" data-track-index="13" data-volume="0.5"></audio>
+      <audio id="a-crack" src="assets/audio/crack.wav" data-start="7.42" data-duration="1.6" data-track-index="14" data-volume="1"></audio>
+      <audio id="a-impact-1" src=".media/audio/sfx/sfx_003.mp3" data-start="7.43" data-duration="2.1" data-track-index="15" data-volume="0.7"></audio>
+      <audio id="a-roar-1" src="assets/audio/crowd-roar.wav" data-start="7.6" data-duration="7.4" data-track-index="16" data-volume="0.55"></audio>
+      <audio id="a-impact-2" src=".media/audio/sfx/sfx_003.mp3" data-start="16.98" data-duration="2.1" data-track-index="15" data-volume="0.7"></audio>
+      <audio id="a-roar-2" src="assets/audio/crowd-roar.wav" data-start="17.05" data-duration="5" data-track-index="16" data-volume="0.45"></audio>
+      <audio id="a-whoosh-2" src=".media/audio/sfx/sfx_004.mp3" data-start="23.2" data-duration="2.6" data-track-index="12" data-volume="0.7"></audio>
+    </div>
+
+    <script>
+      const tl = gsap.timeline({ paused: true });
+
+      // open from black, close to black
+      tl.fromTo("#black", { opacity: 1 }, { opacity: 0, duration: 1.0, ease: "power2.out" }, 0);
+      tl.to("#black", { opacity: 1, duration: 0.7, ease: "power1.in" }, 29.2);
+
+      // the opening logo: rises out of the dusk, the line under it follows, both drift a touch and fade
+      tl.fromTo("#t-open-logo", { opacity: 0, scale: 0.86, y: 30 }, { opacity: 1, scale: 1, y: 0, duration: 1.1, ease: "expo.out" }, 0.8);
+      tl.to("#t-open-logo", { scale: 1.05, duration: 2.1, ease: "none" }, 1.95);
+      tl.fromTo("#t-open-kicker", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 1.0, ease: "power3.out" }, 1.4);
+      tl.to(["#t-open-logo", "#t-open-kicker"], { opacity: 0, duration: 0.45, ease: "power2.in" }, 3.6);
+
+      // lower-third headlines: the gold rule wipes in, the words punch up, then everything slips away
+      function headline(id, at, hold) {
+        tl.fromTo(`#${id}-rule`, { scaleX: 0 }, { scaleX: 1, duration: 0.35, ease: "power3.out" }, at);
+        tl.fromTo(`#${id}-text`, { opacity: 0, y: 46, skewX: -6 }, { opacity: 1, y: 0, skewX: 0, duration: 0.5, ease: "back.out(1.6)" }, at + 0.08);
+        tl.to([`#${id}-rule`, `#${id}-text`], { opacity: 0, x: -40, duration: 0.3, ease: "power2.in" }, at + hold);
+      }
+      headline("t-hit", 9.3, 2.3);
+      headline("t-mound", 15.15, 1.4);
+      headline("t-throw", 18.45, 3.0);
+
+      // contact and strike three: a white flash
+      tl.fromTo("#flash", { opacity: 0.9 }, { opacity: 0, duration: 0.35, ease: "power2.out", immediateRender: false }, 7.43);
+      tl.fromTo("#flash", { opacity: 0.75 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 16.98);
+      tl.fromTo("#flash", { opacity: 0.6 }, { opacity: 0, duration: 0.4, ease: "power2.out", immediateRender: false }, 25.6);
+      
+      // the K slams in, shakes, holds
+      tl.fromTo("#t-k-img", { opacity: 0, scale: 2.4, rotation: -8 }, { opacity: 1, scale: 1, rotation: -4, duration: 0.22, ease: "power4.in", immediateRender: false }, 16.98);
+      tl.fromTo("#t-k-img", { x: -10 }, { x: 0, duration: 0.3, ease: "elastic.out(1.2, 0.3)", immediateRender: false }, 17.2);
+      tl.to("#t-k-img", { scale: 1.08, duration: 0.7, ease: "none" }, 17.25);
+      tl.to("#t-k-img", { opacity: 0, duration: 0.2 }, 17.95);
+
+      // the numbers
+      tl.fromTo("#t-stats-text", { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.6, ease: "expo.out" }, 22.4);
+      tl.fromTo("#t-stats-modes", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 22.8);
+      tl.to(["#t-stats-text", "#t-stats-modes"], { opacity: 0, duration: 0.4, ease: "power2.in" }, 24.9);
+
+      // the end card
+      tl.fromTo("#t-end-logo", { opacity: 0, scale: 1.25 }, { opacity: 1, scale: 1, duration: 0.5, ease: "power4.out" }, 25.6);
+      tl.to("#t-end-logo", { scale: 1.04, duration: 3.4, ease: "none" }, 26.1);
+      tl.fromTo("#t-end-cta", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 26.3);
+      tl.fromTo("#t-end-url", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 26.7);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
