@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Let's Decide</title>
+<style>
+  :root {
+    --bg: #14162b;
+    --panel: #1f2240;
+    --rim: #3a3f72;
+    --text: #f4f1e8;
+    --muted: #a7a9c9;
+    --gold: #ffb627;
+    --gold-edge: #b87400;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: radial-gradient(circle at 50% 0%, #262a55, var(--bg) 70%);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 40px;
+  }
+  h1 {
+    margin: 0 0 20px;
+    font-size: clamp(2rem, 7vw, 3rem);
+    letter-spacing: .02em;
+  }
+  h1 span { color: var(--gold); }
+  .wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 28px;
+    justify-content: center;
+    align-items: flex-start;
+    width: 100%;
+    max-width: 960px;
+  }
+  .wheel {
+    position: relative;
+    width: min(440px, 90vw);
+    aspect-ratio: 1;
+  }
+  canvas {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    box-shadow: 0 0 0 8px var(--rim), 0 18px 40px rgba(0,0,0,.45);
+  }
+  .pointer {
+    position: absolute;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 18px solid transparent;
+    border-right: 18px solid transparent;
+    border-top: 34px solid var(--gold);
+    filter: drop-shadow(0 3px 2px rgba(0,0,0,.5));
+  }
+  .panel {
+    background: var(--panel);
+    border: 2px solid var(--rim);
+    border-radius: 16px;
+    padding: 18px;
+    width: min(340px, 90vw);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  label { font-weight: 700; color: var(--muted); font-size: .9rem; }
+  textarea {
+    width: 100%;
+    min-height: 200px;
+    resize: vertical;
+    background: #12142a;
+    color: var(--text);
+    border: 2px solid var(--rim);
+    border-radius: 10px;
+    padding: 10px;
+    font: inherit;
+    line-height: 1.5;
+  }
+  button {
+    font: inherit;
+    font-weight: 800;
+    font-size: 1.2rem;
+    border: none;
+    border-radius: 12px;
+    padding: 14px;
+    cursor: pointer;
+    color: #2a1a00;
+    background: var(--gold);
+    box-shadow: 0 5px 0 var(--gold-edge);
+    transition: transform .05s;
+  }
+  button:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--gold-edge); }
+  button:disabled { opacity: .5; cursor: default; }
+  button.ghost {
+    font-size: 1rem;
+    color: var(--text);
+    background: var(--rim);
+    box-shadow: 0 4px 0 #23264a;
+  }
+  .row { display: flex; gap: 10px; }
+  .row button { flex: 1; }
+  .result {
+    min-height: 2.4em;
+    margin-top: 22px;
+    font-size: clamp(1.4rem, 5vw, 2rem);
+    font-weight: 800;
+    text-align: center;
+  }
+  .result b { color: var(--gold); }
+</style>
+</head>
+<body>
+  <h1>Let's <span>Decide</span></h1>
+
+  <div class="wrap">
+    <div class="wheel">
+      <div class="pointer"></div>
+      <canvas id="wheel" width="880" height="880"></canvas>
+    </div>
+
+    <div class="panel">
+      <label for="choices">Choices</label>
+      <textarea id="choices">Pizza
+Tacos
+Sushi
+Burgers
+Pasta
+Salad</textarea>
+      <button id="spin">Spin</button>
+      <div class="row">
+        <button class="ghost" id="shuffle">Shuffle</button>
+        <button class="ghost" id="remove" disabled>Remove winner</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="result" id="result"></div>
+
+<script>
+const COLORS = ['#ff6b6b', '#ffb627', '#4ecdc4', '#5b8def', '#b56cff', '#7bd389', '#ff8fab', '#f9844a'];
+const canvas = document.getElementById('wheel');
+const ctx = canvas.getContext('2d');
+const box = document.getElementById('choices');
+const spinBtn = document.getElementById('spin');
+const removeBtn = document.getElementById('remove');
+const result = document.getElementById('result');
+
+let angle = 0;        // current rotation of the wheel, in radians
+let spinning = false;
+let winner = null;
+
+function choices() {
+  return box.value.split('\n').map(s => s.trim()).filter(Boolean);
+}
+
+function draw() {
+  const items = choices();
+  const size = canvas.width;
+  const r = size / 2;
+  ctx.clearRect(0, 0, size, size);
+  if (!items.length) {
+    ctx.fillStyle = '#2a2d55';
+    ctx.beginPath(); ctx.arc(r, r, r, 0, Math.PI * 2); ctx.fill();
+    return;
+  }
+  const slice = (Math.PI * 2) / items.length;
+  items.forEach((text, i) => {
+    const start = angle + i * slice - Math.PI / 2;
+    ctx.beginPath();
+    ctx.moveTo(r, r);
+    ctx.arc(r, r, r, start, start + slice);
+    ctx.closePath();
+    // avoid two neighbours sharing a colour when the count wraps round
+    let c = i % COLORS.length;
+    if (i === items.length - 1 && c === 0 && items.length > 1) c = 2;
+    ctx.fillStyle = COLORS[c];
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,.25)';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    ctx.save();
+    ctx.translate(r, r);
+    ctx.rotate(start + slice / 2);
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#1b1530';
+    const fontSize = Math.max(22, Math.min(52, 360 / items.length + 14));
+    ctx.font = `800 ${fontSize}px system-ui, sans-serif`;
+    const label = text.length > 18 ? text.slice(0, 17) + '…' : text;
+    ctx.fillText(label, r - 30, 0);
+    ctx.restore();
+  });
+  // hub
+  ctx.beginPath();
+  ctx.arc(r, r, 42, 0, Math.PI * 2);
+  ctx.fillStyle = '#14162b';
+  ctx.fill();
+}
+
+function spin() {
+  const items = choices();
+  if (spinning || items.length < 2) {
+    if (items.length < 2) result.textContent = 'Add at least two choices';
+    return;
+  }
+  spinning = true;
+  spinBtn.disabled = true;
+  removeBtn.disabled = true;
+  result.textContent = '';
+
+  const from = angle;
+  const to = angle + Math.PI * 2 * (5 + Math.random() * 3) + Math.random() * Math.PI * 2;
+  const duration = 4200;
+  const t0 = performance.now();
+
+  function frame(now) {
+    const t = Math.min(1, (now - t0) / duration);
+    const ease = 1 - Math.pow(1 - t, 4);
+    angle = from + (to - from) * ease;
+    draw();
+    if (t < 1) return requestAnimationFrame(frame);
+
+    angle %= Math.PI * 2;
+    const slice = (Math.PI * 2) / items.length;
+    // the pointer is at the top; find which slice sits under it
+    const under = ((Math.PI * 2 - angle) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+    winner = Math.floor(under / slice) % items.length;
+    result.innerHTML = `<b>${escapeHtml(items[winner])}</b>`;
+    spinning = false;
+    spinBtn.disabled = false;
+    removeBtn.disabled = false;
+  }
+  requestAnimationFrame(frame);
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+}
+
+document.getElementById('shuffle').addEventListener('click', () => {
+  const items = choices();
+  for (let i = items.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [items[i], items[j]] = [items[j], items[i]];
+  }
+  box.value = items.join('\n');
+  winner = null;
+  removeBtn.disabled = true;
+  draw();
+});
+
+removeBtn.addEventListener('click', () => {
+  if (winner === null) return;
+  const items = choices();
+  items.splice(winner, 1);
+  box.value = items.join('\n');
+  winner = null;
+  removeBtn.disabled = true;
+  result.textContent = '';
+  draw();
+});
+
+spinBtn.addEventListener('click', spin);
+box.addEventListener('input', () => { winner = null; removeBtn.disabled = true; draw(); });
+draw();
+</script>
+</body>
+</html>
